@@ -56,8 +56,8 @@ colors = ['#F8696B', '#FFFFFF', '#63BE7B']  # Red - White - Green
 n_bins = 100
 cmap = LinearSegmentedColormap.from_list('excel_rwg', colors, N=n_bins)
 
-# Create figure with specific size (4.5x4.5 inches at 100 DPI for ~450x450 pixels)
-fig, ax = plt.subplots(figsize=(4.5, 4.5), dpi=100)
+# Create figure with specific size (5.0x5.0 inches at 100 DPI for 500x500 pixels)
+fig, ax = plt.subplots(figsize=(5.0, 5.0), dpi=100)
 
 # Create heatmap
 sns.heatmap(correlation_matrix, 
@@ -88,24 +88,39 @@ plt.tight_layout()
 
 # Save heatmap as PNG with constrained size
 print("Saving heatmap to heatmap.png...")
-plt.savefig('heatmap.png', dpi=100, bbox_inches='tight', pad_inches=0.05)
+plt.savefig('heatmap.png', dpi=100, bbox_inches='tight', pad_inches=0.15)
 print("✓ heatmap.png saved successfully")
 
 plt.close()
 
-# Verify and resize if needed to ensure under 512x512
+# Verify and resize if needed to ensure within 400x400 to 512x512 range
 from PIL import Image
 img = Image.open('heatmap.png')
 width, height = img.size
 print(f"\nInitial heatmap dimensions: {width}x{height} pixels")
 
-# If image is larger than 512x512, resize it
-if width > 512 or height > 512:
-    print("Resizing image to fit within 512x512...")
-    # Calculate scaling to fit within 512x512 while maintaining aspect ratio
-    scale = min(512/width, 512/height)
-    new_width = int(width * scale * 0.95)  # 95% to ensure it's under 512
-    new_height = int(height * scale * 0.95)
+# Ensure image is at least 400x400 and at most 512x512
+min_size = 400
+max_size = 512
+
+if width < min_size or height < min_size:
+    # Scale up to at least 400x400
+    scale = max(min_size/width, min_size/height) * 1.05  # 5% larger to ensure >= 400
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+    # But don't exceed 512
+    if new_width > max_size or new_height > max_size:
+        scale2 = min(max_size/new_width, max_size/new_height) * 0.98
+        new_width = int(new_width * scale2)
+        new_height = int(new_height * scale2)
+    img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+    img.save('heatmap.png')
+    print(f"✓ Resized to: {new_width}x{new_height} pixels")
+elif width > max_size or height > max_size:
+    # Scale down to fit within 512x512
+    scale = min(max_size/width, max_size/height) * 0.98
+    new_width = int(width * scale)
+    new_height = int(height * scale)
     img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
     img.save('heatmap.png')
     print(f"✓ Resized to: {new_width}x{new_height} pixels")
@@ -114,7 +129,14 @@ else:
 
 # Final verification
 img = Image.open('heatmap.png')
-print(f"\nFinal heatmap dimensions: {img.size[0]}x{img.size[1]} pixels")
+final_width, final_height = img.size
+print(f"\nFinal heatmap dimensions: {final_width}x{final_height} pixels")
+
+# Verify it meets requirements
+if final_width >= min_size and final_height >= min_size and final_width <= max_size and final_height <= max_size:
+    print(f"✓ Dimensions meet requirements (400-512 pixels): {final_width}x{final_height}")
+else:
+    print(f"⚠ WARNING: Dimensions may not meet requirements!")
 
 print("\n" + "="*60)
 print("ANALYSIS COMPLETE!")
