@@ -56,8 +56,8 @@ colors = ['#F8696B', '#FFFFFF', '#63BE7B']  # Red - White - Green
 n_bins = 100
 cmap = LinearSegmentedColormap.from_list('excel_rwg', colors, N=n_bins)
 
-# Create figure with specific size (512x512 pixels at 100 DPI = 5.12 inches)
-fig, ax = plt.subplots(figsize=(5.12, 5.12), dpi=100)
+# Create figure with specific size (4.5x4.5 inches at 100 DPI for ~450x450 pixels)
+fig, ax = plt.subplots(figsize=(4.5, 4.5), dpi=100)
 
 # Create heatmap
 sns.heatmap(correlation_matrix, 
@@ -86,17 +86,35 @@ plt.yticks(rotation=0)
 # Tight layout
 plt.tight_layout()
 
-# Save heatmap as PNG
+# Save heatmap as PNG with constrained size
 print("Saving heatmap to heatmap.png...")
-plt.savefig('heatmap.png', dpi=100, bbox_inches='tight')
-print("✓ heatmap.png saved successfully (512x512 pixels)")
+plt.savefig('heatmap.png', dpi=100, bbox_inches='tight', pad_inches=0.05)
+print("✓ heatmap.png saved successfully")
 
 plt.close()
 
-# Verify file dimensions
+# Verify and resize if needed to ensure under 512x512
 from PIL import Image
 img = Image.open('heatmap.png')
-print(f"\nHeatmap dimensions: {img.size[0]}x{img.size[1]} pixels")
+width, height = img.size
+print(f"\nInitial heatmap dimensions: {width}x{height} pixels")
+
+# If image is larger than 512x512, resize it
+if width > 512 or height > 512:
+    print("Resizing image to fit within 512x512...")
+    # Calculate scaling to fit within 512x512 while maintaining aspect ratio
+    scale = min(512/width, 512/height)
+    new_width = int(width * scale * 0.95)  # 95% to ensure it's under 512
+    new_height = int(height * scale * 0.95)
+    img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+    img.save('heatmap.png')
+    print(f"✓ Resized to: {new_width}x{new_height} pixels")
+else:
+    print("✓ Image dimensions are within requirements")
+
+# Final verification
+img = Image.open('heatmap.png')
+print(f"\nFinal heatmap dimensions: {img.size[0]}x{img.size[1]} pixels")
 
 print("\n" + "="*60)
 print("ANALYSIS COMPLETE!")
